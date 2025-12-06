@@ -29,7 +29,7 @@ The repository is collection of references, papers required for LongContext infe
 **In short, for decode context parallel, try to increase `-tp` size until you get satisfactory performance, and then add `-dcp` to reduce the KV cache duplication.**
 
 ## References
- - (Helix Parallelism)[https://arxiv.org/abs/2507.07120] :
+ - [Helix Parallelism](https://arxiv.org/abs/2507.07120) :
 
 <img width="948" height="345" alt="Helix" src="https://github.com/user-attachments/assets/3ef7d20b-41ef-42d9-969b-768db1cecc79" />
 
@@ -39,7 +39,7 @@ The repository is collection of references, papers required for LongContext infe
 > Helix configures all available GPUs into a pool of N = KVP × TPA (TPA ≤ K), then shards the KV cache along the sequence dimension across the KVP GPUs, eliminating full-cache replication and cutting DRAM footprint and bandwidth demands. To avoid an expensive pre-attention All-Gather of queries across the KVP GPUs, Helix has each KVP GPU independently compute the full QKV projections.
 
   
- - (Medha -  Tackling Heterogeneity in Long-Context LLM Inference with Medha)[https://arxiv.org/abs/2409.17264]
+ - [Medha -  Tackling Heterogeneity in Long-Context LLM Inference with Medha](https://arxiv.org/abs/2409.17264)
    
   	> To tackle KV cache scaling, recent work like Medha [7] shards the KV  
 	> cache across an auto-scaled      pool of N GPUs using KV Parallelism  
