@@ -9,16 +9,24 @@ The repository is collection of references, papers required for LongContext infe
 
 ## vLLM
 
- - [Context Parallel Deployment](https://docs.vllm.ai/en/latest/serving/context_parallel_deployment/)
+ ### [Context Parallel Deployment](https://docs.vllm.ai/en/latest/serving/context_parallel_deployment/)
 	
 	>  -   For long context prefill, we need to control the TTFT (time to first token) by amortizing the computation time of the prefill across
 	> query tokens.
 	> -   For long context decode, we need more space for KV cache to increase the batchsize (and hence the throughput).
 		 
+### Prefill Context Parallel  (under development approaches)
+	>  -   Partial Query and full key/value: basically chunk the requests based on number of GPUs, cacluate KV for each chunk and then collect KV across all GPUs to calcuate attention for a given chunk or given query in that particular chunk for a given GPU, here the assumption is that KV can be held in the GPU memory
+				
+	>  -   Partial Query and partial key/value: Here the for every chunk across GPU, each chunk partial K, V are calculated and then passed along  using techniques like ring-attention to send/recv key/value vectors chunk by chunk.
+	> -   For long context decode, we need more space for KV cache to increase the batchsize (and hence the throughput).
+### Decode Context Parallel
 
-	> 	 1. We have `N` GPUs, we can split the request into `N` chunks, and each
-	> 	        		    GPU computes one chunk of the query/key/value tensors
-	> 	 2.  `H`  is limited (determined by the model architecture), when we continue to increase the tensor parallel size, the KV cache for each GPU will be duplicated for  `tp_size / H`  times. Of course,  duplication is not good for efficiency. Then we need to add decode context parallel to further shard the KV cache along the  `T`  dimension. This is as simple as adding  `-dcp <size>`  to the command  line. Note that  `size`  does not increase the number of GPUs we need to launch, but just reduces the KV cache duplication. The dcp size should lie in the range of  `[1, tp_size/H]`. With larger dcp size, the KV cache duplication is reduced, but the communication overhead increases. 
+The core of Decoding stage is each GPU needs to calcuate query wrt a large amount of Key/Value tokens stored in KV cachek across GPU. The core of decode is in CP scenario is how to shard the KV cache across GPU.
+
+For a model with `H` kv-heads, a request with `T` toekns in the context needs to store `H * T` key/value tensors in the KV cache
+	> 	 1. if one GPU cannot hold them all, or we want to hold more requests in the KV cache, **we can first shard the KV cache along the `H` dimension**, that's the plain tensor parallel sharding. It's as simple as adding `-tp <num_gpus>` to the command line.
+	> 	 2.  `H`  is limited (determined by the model architecture), when we continue to increase the tensor parallel size, the KV cache for each GPU will be duplicated for  `tp_size / H`  times (so the best settings here would be for an 8 attention heads, 8 GPU would not duplicate the KV cache, hence more requests can fit into a single GPU). Of course,  duplication is not good for efficiency. Then we need to add decode context parallel to further shard the KV cache along the  `T`  dimension. This is as simple as adding  `-dcp <size>`  to the command  line. Note that  `size`  does not increase the number of GPUs we need to launch, but just reduces the KV cache duplication. The dcp size should lie in the range of  `[1, tp_size/H]`. With larger dcp size, the KV cache duplication is reduced, but the communication overhead increases. 
 
 **`dcp <size>` Examples:**
 
