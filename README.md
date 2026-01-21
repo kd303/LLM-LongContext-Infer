@@ -11,15 +11,18 @@ The repository is collection of references, papers required for LongContext infe
 
  ### [Context Parallel Deployment](https://docs.vllm.ai/en/latest/serving/context_parallel_deployment/)
 	
-	>  -   For long context prefill, we need to control the TTFT (time to first token) by amortizing the computation time of the prefill across
-	> query tokens.
-	> -   For long context decode, we need more space for KV cache to increase the batchsize (and hence the throughput).
+	-   For long context prefill, we need to control the TTFT (time to first token) by amortizing the computation time of the prefill across query tokens.
+	-   For long context decode, we need more space for KV cache to increase the batchsize (and hence the throughput).
 		 
 ### Prefill Context Parallel  (under development approaches)
-	>  -   Partial Query and full key/value: basically chunk the requests based on number of GPUs, cacluate KV for each chunk and then collect KV across all GPUs to calcuate attention for a given chunk or given query in that particular chunk for a given GPU, here the assumption is that KV can be held in the GPU memory
+	-   Partial Query and full key/value: basically chunk the requests based on number of GPUs, calculate KV
+	for each chunk and then collect KV across all GPUs to calculate attention for a given chunk or given query
+	in that particular chunk for a given GPU, here the assumption is that KV can be held in the GPU memory
 				
-	>  -   Partial Query and partial key/value: Here the for every chunk across GPU, each chunk partial K, V are calculated and then passed along  using techniques like ring-attention to send/recv key/value vectors chunk by chunk.
-	> -   For long context decode, we need more space for KV cache to increase the batchsize (and hence the throughput).
+	-   Partial Query and partial key/value: Here the for every chunk across GPU, each chunk partial K, V are
+	calculated and then passed along  using techniques like ring-attention to send/recv key/value 
+	vectors chunk by chunk.
+	-   For long context decode, we need more space for KV cache to increase the batchsize (and hence the throughput).
 ### Decode Context Parallel
 
 	The core of Decoding stage is each GPU needs to calcuate query wrt a large amount of Key/Value tokens stored in KV cachek across GPU. The core of decode is in CP scenario is how to shard the KV cache across GPU.
