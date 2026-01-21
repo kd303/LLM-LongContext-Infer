@@ -18,7 +18,7 @@ The repository is collection of references, papers required for LongContext infe
 
 	> 	 1. We have `N` GPUs, we can split the request into `N` chunks, and each
 	> 	        		    GPU computes one chunk of the query/key/value tensors
-	> 	 2.  `H`  is limited (determined by the model architecture), when we continue to increase the tensor parallel size, the KV cache for each GPU will be duplicated for  `tp_size / H`  times. Of course, 	> duplication is not good for efficiency. Then we need to add decode 	> context parallel to further shard the KV cache along the  `T`  dimension. This is as simple as adding  `-dcp <size>`  to the command  line. Note that  `size`  does not increase the number of GPUs we need to launch, but just reduces the KV cache duplication. The dcp size 	> should lie in the range of  `[1, tp_size/H]`. With larger dcp size, the KV cache duplication is reduced, but the communication overhead increases. 
+	> 	 2.  `H`  is limited (determined by the model architecture), when we continue to increase the tensor parallel size, the KV cache for each GPU will be duplicated for  `tp_size / H`  times. Of course,  duplication is not good for efficiency. Then we need to add decode context parallel to further shard the KV cache along the  `T`  dimension. This is as simple as adding  `-dcp <size>`  to the command  line. Note that  `size`  does not increase the number of GPUs we need to launch, but just reduces the KV cache duplication. The dcp size should lie in the range of  `[1, tp_size/H]`. With larger dcp size, the KV cache duplication is reduced, but the communication overhead increases. 
 
 **`dcp <size>` Examples:**
 
