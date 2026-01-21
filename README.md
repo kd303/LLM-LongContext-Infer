@@ -22,19 +22,19 @@ The repository is collection of references, papers required for LongContext infe
 	> -   For long context decode, we need more space for KV cache to increase the batchsize (and hence the throughput).
 ### Decode Context Parallel
 
-The core of Decoding stage is each GPU needs to calcuate query wrt a large amount of Key/Value tokens stored in KV cachek across GPU. The core of decode is in CP scenario is how to shard the KV cache across GPU.
+	The core of Decoding stage is each GPU needs to calcuate query wrt a large amount of Key/Value tokens stored in KV cachek across GPU. The core of decode is in CP scenario is how to shard the KV cache across GPU.
 
-For a model with `H` kv-heads, a request with `T` toekns in the context needs to store `H * T` key/value tensors in the KV cache
-	> 	 1. if one GPU cannot hold them all, or we want to hold more requests in the KV cache, **we can first shard the KV cache along the `H` dimension**, that's the plain tensor parallel sharding. It's as simple as adding `-tp <num_gpus>` to the command line.
-	> 	 2.  `H`  is limited (determined by the model architecture), when we continue to increase the tensor parallel size, the KV cache for each GPU will be duplicated for  `tp_size / H`  times (so the best settings here would be for an 8 attention heads, 8 GPU would not duplicate the KV cache, hence more requests can fit into a single GPU). Of course,  duplication is not good for efficiency. Then we need to add decode context parallel to further shard the KV cache along the  `T`  dimension. This is as simple as adding  `-dcp <size>`  to the command  line. Note that  `size`  does not increase the number of GPUs we need to launch, but just reduces the KV cache duplication. The dcp size should lie in the range of  `[1, tp_size/H]`. With larger dcp size, the KV cache duplication is reduced, but the communication overhead increases. 
+	For a model with `H` kv-heads, a request with `T` toekns in the context needs to store `H * T` key/value tensors in the KV cache
+		> 	 1. if one GPU cannot hold them all, or we want to hold more requests in the KV cache, **we can first shard the KV cache along the `H` dimension**, that's the plain tensor parallel sharding. It's as simple as adding `-tp <num_gpus>` to the command line.
+		> 	 2.  `H`  is limited (determined by the model architecture), when we continue to increase the tensor parallel size, the KV cache for each GPU will be duplicated for  `tp_size / H`  times (so the best settings here would be for an 8 attention heads, 8 GPU would not duplicate the KV cache, hence more requests can fit into a single GPU). Of course,  duplication is not good for efficiency. Then we need to add decode context parallel to further shard the KV cache along the  `T`  dimension. This is as simple as adding  `-dcp <size>`  to the command  line. Note that  `size`  does not increase the number of GPUs we need to launch, but just reduces the KV cache duplication. The dcp size should lie in the range of  `[1, tp_size/H]`. With larger dcp size, the KV cache duplication is reduced, but the communication overhead increases. 
 
 **`dcp <size>` Examples:**
 
- - *Here important thing to note, for example model with attention head 8, TP size 16 GPU, will make more sense, else DCP does not make  sense... **Duh**!*
-- *For DeepSeek-R1, we have 1 kv-head when MLA is enabled. The typical single-node deployment with `-tp 8` **causes 8x KV cache duplication**. We can consider adding `-dcp 8` to reduce the KV cache duplication.
-- Kimi-K2, the architecture is similar to DeepSeek-R1, but with more parameters. When we deploy it with `-tp 16`, the KV cache duplication is 16x. We can add `-dcp 16` to *completely remove the KV cache duplication, at the cost of more communication overhead*. We can also add `-dcp 8` to reduce the KV cache duplication to 2x. *the communication overhead is smaller since the DCP communication only happens inside one node.* 
-
-**In short, for decode context parallel, try to increase `-tp` size until you get satisfactory performance, and then add `-dcp` to reduce the KV cache duplication.**
+	 - *Here important thing to note, for example model with attention head 8, TP size 16 GPU, will make more sense, else DCP does not make  sense... **Duh**!*
+	- *For DeepSeek-R1, we have 1 kv-head when MLA is enabled. The typical single-node deployment with `-tp 8` **causes 8x KV cache duplication**. We can consider adding `-dcp 8` to reduce the KV cache duplication.
+	- Kimi-K2, the architecture is similar to DeepSeek-R1, but with more parameters. When we deploy it with `-tp 16`, the KV cache duplication is 16x. We can add `-dcp 16` to *completely remove the KV cache duplication, at the cost of more communication overhead*. We can also add `-dcp 8` to reduce the KV cache duplication to 2x. *the communication overhead is smaller since the DCP communication only happens inside one node.* 
+	
+	**In short, for decode context parallel, try to increase `-tp` size until you get satisfactory performance, and then add `-dcp` to reduce the KV cache duplication.**
 
 ## References
  - [Helix Parallelism](https://arxiv.org/abs/2507.07120) :
