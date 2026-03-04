@@ -67,7 +67,7 @@ graph TD
 > - **Tokenizer (Purple)**: Scalable by increasing the number of concurrent model instances in the Triton config.
 > - **Inference (Purple)**: Scalable via **Dynamic Batching** (combining requests) and **Model Instance Groups** (parallel execution).
 >
-> <sup>#</sup>: The similarity score is calculated by taking the cosine similarity between the image and text embeddings. it is currently not implemented in the pipeline
+> <sup>#</sup> **The similarity score is calculated by taking the cosine similarity between the image and text embeddings. it is currently not implemented in the pipeline**
 
 ### Model Repository Structure
 
