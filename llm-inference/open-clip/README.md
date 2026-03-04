@@ -42,7 +42,7 @@ graph TD
     subgraph "Outputs"
         F[Image Embeddings]
         G[Text Embeddings]
-        H[Similarity Score]*
+        H[Similarity Score]<sup>*</sup>
     end
 
     A --> C
