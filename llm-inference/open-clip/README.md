@@ -42,7 +42,7 @@ graph TD
     subgraph "Outputs"
         F[Image Embeddings]
         G[Text Embeddings]
-        H[Similarity Score]
+        H[Similarity Score]*
     end
 
     A --> C
@@ -143,8 +143,30 @@ torch.onnx.export(
 
 > [!NOTE]
 > **Notebook Insight**: `dynamic_axes` is not recommended when `dynamo=True`. Modern exporters prefer `dynamic_shapes` to avoid constraints violations.
+> Using opset_version 14 for better compatibility with TensorRT 8.x+ this is the magic porttion Opset : Operator Set - basically hardware specific instructions and optimsation by the providers.
 
-Once exported, we use **`trtexec`** to compile a high-performance engine optimized for FP16 and target hardware like the NVIDIA A100.
+### Model Export & Optimization Notes
+
+> [!TIP]
+>
+> - Using opset_version 14 for better compatibility with TensorRT 8.x+
+> - this is the magic portion Opset : Operator Set - basically hardware specific instructions and optimisation by the providers.
+> - For A100/H100 the opset is 17, it fuses `LayerNormalization` & `GroupNormalization` as single operators (fused kernels)
+> - Dont forget FP8 :) for H100
+> - Also same changed to 17 due to LayerNorm node does not exist, which is optimized in 17.
+> - Dynamo=False, this is Torch.dynamo trying to detect dynamic shapes and we provided 77 as fixed
+> - for B200 : TensorRT 10.x is recommended :: Dual-die Architecture : More on it Later!
+>
+> [!IMPORTANT]
+>
+> - ONNX files use Google’s Protobuf format to store everything (architecture + weights).
+> - Protobuf has a hard limit of 2GB for a single file.
+> - If your model is < 2GB: Everything is packed into one tidy .onnx file.
+> - If your model is > 2GB: The exporter must strip the weights out and
+> - put them into a separate .data file (or multiple files)
+> - so the main .onnx file stays under the limit.
+
+Once exported, we use **`trtexec`** to compile a high-performance engine optimized for **FP16** and target hardware like the **NVIDIA A100**.
 
 ```bash
 trtexec --onnx=/data/models/openai_clip.onnx \
@@ -154,6 +176,31 @@ trtexec --onnx=/data/models/openai_clip.onnx \
         --optShapes=pixel_values:32x3x224x224,input_ids:32x77 \
         --maxShapes=pixel_values:64x3x224x224,input_ids:64x77 \
         --memPoolSize=workspace:4096MiB
+```
+
+### 2.1 Some brilliant insights on optimization of flags in above logs:
+
+#### 2.1.1 Sparsity:
+
+This is the famous Sparsity optimisation introduced for A100, Sparsity 2:4, however this works for sparse models, so Trt wont need it [ReadMore](https://developer.nvidia.com/blog/structured-sparsity-in-the-nvidia-ampere-architecture-and-applications-in-search-engines/)
+
+#### 2.1.2 Decomponsable Attentions:
+
+for MHA, FMHA kernel is used, for Open clip it has found a kernel that is fused, and it does not need to decompose the Matrix multiplication and other parts
+
+#### 2.1.3 Refit
+
+Having this flag enabled means the weights can be swapped out without recompiling the model, we are working on inferencing so this wont be neccesary
+
+#### 2.1.4 Performance from `trtexec` simulation
+
+By enabling **Dynamic Batching** and concurrent model instances, we can fully saturate the A100 GPU. Note this is only Model performance benchmarks.
+
+```text
+[I] === Performance summary ===
+[I] Throughput: 438.122 qps ***
+[I] Latency: min = 3.79248 ms, max = 4.41853 ms, mean = 3.86752 ms
+[I] GPU Compute Time: mean = 2.27573 ms
 ```
 
 ---
@@ -211,18 +258,7 @@ def clip_preprocessing_pipeline(device="gpu"):
 
 ---
 
-## 4. Performance Benchmarks
-
-By enabling **Dynamic Batching** and concurrent model instances, we can fully saturate the A100 GPU.
-
-```text
-[I] === Performance summary ===
-[I] Throughput: 438.122 qps ***
-[I] Latency: min = 3.79248 ms, max = 4.41853 ms, mean = 3.86752 ms
-[I] GPU Compute Time: mean = 2.27573 ms
-```
-
-These numbers represent a massive leap over standard PyTorch serving. We achieve sub-5ms latency while processing over 400 queries per second.
+## 4. Triton Client
 
 ---
 
