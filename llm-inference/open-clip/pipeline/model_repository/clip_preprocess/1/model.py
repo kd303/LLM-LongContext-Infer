@@ -10,9 +10,7 @@ def clip_preprocessing_pipeline(device="gpu"):
     # 1. External Source: We feed raw JPEG bytes and pre-tokenized IDs
      
     jpegs = fn.external_source(device="cpu", name="IMAGE_INPUT")
-    input_ids = fn.external_source(device="cpu", name="TEXT_IDS")
-    attention_mask = fn.external_source(device="cpu", name="ATTN_MASK")
-
+   
     # 2. Image Branch (GPU accelerated), mixed actuall falls back to CPU for non JPEG images, for JPEG it uses hardware decoders
     images = fn.decoders.image(jpegs, device="mixed", output_type=types.RGB)
     
@@ -30,9 +28,4 @@ def clip_preprocessing_pipeline(device="gpu"):
         std=[0.26862954 * 255, 0.26130258 * 255, 0.27577711 * 255]
     )
 
-    # 3. Text Branch: Move tokenized IDs to GPU
-    # Since tokenization is complex (BPE), we do it on CPU and move to GPU here
-    input_ids_gpu = input_ids.gpu()
-    attention_mask_gpu = attention_mask.gpu()
-
-    return pixel_values, input_ids_gpu, attention_mask_gpu
+    return pixel_values

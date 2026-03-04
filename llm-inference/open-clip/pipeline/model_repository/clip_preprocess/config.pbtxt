@@ -7,16 +7,6 @@ input [
     name: "IMAGE_INPUT"
     data_type: TYPE_UINT8
     dims: [ -1 ] # Variable length raw bytes
-  },
-  {
-    name: "TEXT_IDS"
-    data_type: TYPE_INT32
-    dims: [ 77 ]
-  },
-  {
-    name: "ATTN_MASK"
-    data_type: TYPE_INT32
-    dims: [ 77 ]
   }
 ]
 
@@ -25,16 +15,6 @@ output [
     name: "PIXEL_VALUES"
     data_type: TYPE_FP32
     dims: [ 3, 224, 224 ]
-  },
-  {
-    name: "GPU_IDS"
-    data_type: TYPE_INT32
-    dims: [ 77 ]
-  },
-  {
-    name: "GPU_MASK"
-    data_type: TYPE_INT32
-    dims: [ 77 ]
   }
 ]
 instance_group [
