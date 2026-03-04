@@ -1,0 +1,47 @@
+name: "clip_inference"
+platform: "tensorrt_plan"
+max_batch_size: 64
+
+input [
+  {
+    name: "pixel_values"
+    data_type: TYPE_FP32
+    dims: [ 3, 224, 224 ]
+  },
+  {
+    name: "input_ids"
+    data_type: TYPE_INT32
+    dims: [ 77 ]
+  },
+  {
+    name: "attention_mask"
+    data_type: TYPE_INT32
+    dims: [ 77 ]
+  }
+]
+
+output [
+  {
+    name: "image_embeds"
+    data_type: TYPE_FP32
+    dims: [ 512 ] # Adjust if using ViT-L/14 (768)
+  },
+  {
+    name: "text_embeds"
+    data_type: TYPE_FP32
+    dims: [ 512 ]
+  }
+]
+
+# Enable Dynamic Batching for A100 throughput
+dynamic_batching {
+  preferred_batch_size: [ 16, 32 ]
+  max_queue_delay_microseconds: 100
+}
+
+instance_group [
+  {
+    count: 1 # Run 2 concurrent engine instances on the A100
+    kind: KIND_GPU
+  }
+]

@@ -1,0 +1,40 @@
+name: "clip_ensemble"
+platform: "ensemble"
+max_batch_size: 64
+
+input [
+  { name: "IMAGE_BYTES", data_type: TYPE_UINT8, dims: [ -1 ] },
+  { name: "TEXT_INPUT",    data_type: TYPE_STRING, dims: [ 1 ] }
+]
+
+output [
+  { name: "IMAGE_EMBEDDING", data_type: TYPE_FP32, dims: [ 512 ] },
+  { name: "TEXT_EMBEDDING", data_type: TYPE_FP32, dims: [ 512 ] }
+]
+
+ensemble_scheduling {
+  step [
+    {
+      model_name: "clip_preprocess"
+      model_version: -1
+      input_map { key: "IMAGE_INPUT", value: "IMAGE_BYTES" }
+      output_map { key: "PIXEL_VALUES", value: "preprocessed_pixels" }
+    },
+    {
+      model_name: "tokenizer"
+      model_version: -1
+      input_map { key: "TEXT_INPUT", value: "TEXT_INPUT" }
+      output_map { key: "INPUT_IDS", value: "gpu_ids" }     # Internal Wire
+      output_map { key: "ATTN_MASK", value: "gpu_mask" }     # Internal Wire
+    },
+    {
+      model_name: "clip_inference"
+      model_version: -1
+      input_map { key: "pixel_values", value: "preprocessed_pixels" }
+      input_map { key: "input_ids", value: "gpu_ids" }
+      input_map { key: "attention_mask", value: "gpu_mask" }
+      output_map { key: "image_embeds", value: "IMAGE_EMBEDDING" }
+      output_map { key: "text_embeds", value: "TEXT_EMBEDDING" }
+    }
+  ]
+}
